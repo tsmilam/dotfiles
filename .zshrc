@@ -7,70 +7,61 @@ export EDITOR="vim"
 # Update PATH
 export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH:~/.fzf:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:~/.local/bin:~/.fzf/bin"
 
-# Homebrew Configuration
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
 # --- Antigen Configuration ---
 source $HOME/.antigen/antigen.zsh
 
-# === Spaceship Kubernetes Module Configuration ===
-SPACESHIP_KUBECTL_SHOW=true  # Ensure kubectl is generally shown, but we control visibility now.
+# --- Spaceship Kubernetes Module Configuration ---
+SPACESHIP_KUBECTL_SHOW=true          # Ensure kubectl is shown
 
 # Display username always
 SPACESHIP_USER_SHOW=always
 
-# Show current Kubernetes cluster
-SPACESHIP_KUBECTL_SHOW_CLUSTER=true
-
-# Set the Kubernetes symbol with a trailing space for better spacing
-SPACESHIP_KUBECTL_SYMBOL="☸️  "
-
-# Hide the Kubernetes version number (Corrected Variable Name)
-SPACESHIP_KUBECTL_VERSION_SHOW=false
-
-# Show current Kubernetes context (typically includes the cluster name)
-SPACESHIP_KUBECTL_SHOW_CONTEXT=true
-
-# Show current Kubernetes namespace
+# Hide context, namespace, and user to prevent "default" from appearing
+SPACESHIP_KUBECTL_SHOW_CONTEXT=false
 SPACESHIP_KUBECTL_SHOW_NAMESPACE=true
+SPACESHIP_KUBECTL_SHOW_USER=false
+
+# Show the Kubernetes cluster name
+SPACESHIP_KUBECTL_SHOW_CLUSTER=true
 
 SPACESHIP_USER_COLOR="green"
 
-# Set Kubernetes symbol color to bright blue
-SPACESHIP_KUBECTL_COLOR="blue"
+# Set Kubernetes symbol
+SPACESHIP_KUBECTL_SYMBOL="☸️  "
 
-# === End of Spaceship Kubernetes Module Configuration ===
+# Set Kubernetes symbol color
+SPACESHIP_KUBECTL_COLOR="blue"
+# --- End of Spaceship Kubernetes Module Configuration ---
 
 # Kubernetes Aliases and Completion
 if command -v kubectl &> /dev/null; then
   source <(kubectl completion zsh)
-  [ -f "$HOME/.bin/fubectl.source" ] && source "$HOME/.bin/fubectl.source"
+
+  # Kubernetes Context Switcher (kcs) - Using FZF
   kcs() {
     local config_dir=~/.kube
-    # List files but exclude cache, config, ca-certs, kubectx, and kubens directories
     local selection=$(ls "$config_dir" | grep -v '^config$\|^cache$\|^ca-certs$\|^kubectx$\|^kubens$' | fzf --height=50% --reverse --border --inline-info)
-    
+
     if [[ -n "$selection" ]]; then
-        export KUBECONFIG="$config_dir/$selection"
-        echo "Switched to kubeconfig: $selection"
+      export KUBECONFIG="$config_dir/$selection"
+      echo "Switched kubeconfig to: $selection"
     fi
   }
+
+  # Kubernetes Namespace Switcher (kns) - Using FZF
   kns() {
     if [[ -z "$1" ]]; then
-        # No argument provided - use fzf to select namespace
-        local ns=$(kubectl get ns --no-headers | awk '{print $1}' | fzf --height=50% --reverse --border --inline-info)
-        if [[ -n "$ns" ]]; then
-            kubectl config set-context --current --namespace="$ns"
-            echo "Switched to namespace: $ns"
-        fi
+      local ns=$(kubectl get ns --no-headers | awk '{print $1}' | fzf --height=50% --reverse --border --inline-info)
+      if [[ -n "$ns" ]]; then
+        kubectl config set-context --current --namespace="$ns"
+        echo "Switched namespace to: $ns"
+      fi
     else
-        # Argument provided - directly switch to that namespace
-        kubectl config set-context --current --namespace="$1"
-        echo "Switched to namespace: $1"
+      kubectl config set-context --current --namespace="$1"
+      echo "Switched namespace to: $1"
     fi
   }
 fi
-
 
 # Load Bundles (Plugins) with Antigen
 antigen bundle git
@@ -83,11 +74,8 @@ antigen theme denysdovhan/spaceship-prompt
 # Apply the Configuration
 antigen apply
 
-# --- End of Antigen Configuration ---
-
 # --- Additional Configurations ---
 unsetopt share_history
-
 autoload -Uz copy-earlier-word
 zle -N copy-earlier-word
 
@@ -96,11 +84,10 @@ autoload -U compinit && compinit
 
 # Aliases
 alias 'ubuntu-release'="lsb_release -a"
-
-# Enhanced `ls` Aliases with Color Support
 alias ls='ls --color=auto'
 alias ll='ls -la --color=auto'
 alias la='ls -A --color=auto'
+alias k='kubectl'
 
 # Directory Colors
 eval "$(dircolors ~/.dircolors)"
